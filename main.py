@@ -164,7 +164,11 @@ def move(player, movement):
 
 start_screen()
 # player, level_x, level_y = generate_level(load_level("map.map"))
-level_map = load_level("map.txt")
+try:
+    level_map = load_level(input('Уровень должен находиться в папке data:'))
+except FileNotFoundError:
+    print('Error')
+    quit()
 player, max_x, max_y = generate_level(level_map)
 
 running = True
