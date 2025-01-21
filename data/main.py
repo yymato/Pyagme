@@ -1,7 +1,5 @@
-# прорисовка поля и статичного героя
 import os
 import sys
-
 import pygame
 
 pygame.init()
@@ -15,7 +13,7 @@ screen = pygame.display.set_mode(size)
 clock = pygame.time.Clock()
 
 player = None
-
+# all_sprites = pygame.sprite.Group()
 tiles_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 
@@ -36,13 +34,12 @@ def generate_level(level):
 
 
 def load_image(name, color_key=None):
-    fullname = os.path.join('data', name)
+    fullname = os.path.join('', name)
     try:
         image = pygame.image.load(fullname)
     except pygame.error as message:
         print('Cannot load image:', name)
         raise SystemExit(message)
-
     if color_key is not None:
         image = image.convert()
         if color_key == -1:
@@ -54,7 +51,7 @@ def load_image(name, color_key=None):
 
 
 def load_level(filename):
-    filename = "data/" + filename
+    filename = filename
     # читаем уровень, убирая символы перевода строки
     with open(filename, 'r') as mapFile:
         level_map = [line.strip() for line in mapFile]
@@ -104,7 +101,6 @@ def start_screen():
 
 tile_images = {'wall': load_image('box.png'), 'empty': load_image('grass.png')}
 player_image = load_image('mario.png')
-
 tile_width = tile_height = 50
 
 
@@ -132,21 +128,20 @@ class Player(Sprite):
         self.rect = self.image.get_rect().move(tile_width * pos_x + 15, tile_height * pos_y + 5)
         self.pos = (pos_x, pos_y)
 
-        # добавлено
-
+    # добавлено
     def move(self, x, y):
+        camera.dx -= tile_width * (x - self.pos[0])
+        camera.dy -= tile_height * (y - self.pos[1])
+        # print(x - self.pos[0], y - self.pos[1])
+        # print(camera.dx, camera.dy)
         self.pos = (x, y)
-        self.rect = self.image.get_rect().move(tile_width * self.pos[0] + 15, tile_height * self.pos[1] + 5)
+        # print(self.pos)
+        for sprite in tiles_group:
+            camera.apply(sprite)
 
 
 def move(player, movement):
     x, y = player.pos
-    # print(x, y)
-    # print(level_map[x][y - 1])
-    # print(level_map[x][y + 1])
-    # print(level_map[x - 1][y])
-    # print(level_map[x + 1][y])
-    # print()
     if movement == "up":
         if y > 0 and (level_map[y - 1][x] == "." or level_map[y - 1][x] == "@"):
             player.move(x, y - 1)
@@ -162,18 +157,30 @@ def move(player, movement):
             player.move(x + 1, y)
 
 
-start_screen()
-# player, level_x, level_y = generate_level(load_level("map.map"))
-try:
-    level_map = load_level(input('Уровень должен находиться в папке data:'))
-except FileNotFoundError:
-    print('Error')
-    quit()
-player, max_x, max_y = generate_level(level_map)
+class Camera:
+    # зададим начальный сдвиг камеры
+    def __init__(self):
+        self.dx = 0
+        self.dy = 0
 
+    # сдвинуть объект obj на смещение камеры
+    def apply(self, obj):
+        obj.rect.x += self.dx
+        obj.rect.y += self.dy
+
+    # позиционировать камеру на объекте target
+    def update(self, target):
+        self.dx = 0
+        self.dy = 0
+
+
+start_screen()
+camera = Camera()  # Добавлено
+
+level_map = load_level("map.txt")
+player, max_x, max_y = generate_level(level_map)
 running = True
 while running:
-
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -186,9 +193,11 @@ while running:
                 move(player, "left")
             elif event.key == pygame.K_RIGHT:
                 move(player, "right")
+            camera.update(player)
     screen.fill(pygame.Color(0, 0, 0))
     tiles_group.draw(screen)
     player_group.draw(screen)
     pygame.display.flip()
     clock.tick(FPS)
+
 terminate()
